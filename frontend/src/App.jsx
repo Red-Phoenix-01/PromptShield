@@ -1975,43 +1975,32 @@ function ReportsPage({
 
         {/* SECURITY ASSESSMENT */}
 
+
+
         <div className="report-assessment">
 
-          <ShieldCheck size={20} />
-
-          <div>
-
-            <strong>
-              Security Assessment
-            </strong>
-
-            <p>
-              PromptShield completed the configured
-              adversarial security test suite and
-              identified {stats.vulnerable} vulnerable
-              test case(s). The current security score
-              is {stats.security_score}/100 with a
-              {` ${stats.risk_level.toLowerCase()}`}
-              classification.
-            </p>
-
+          <div className="report-assessment-header">
+            <ShieldCheck size={20} />
+            <strong>Security Assessment</strong>
           </div>
+
+          <p>
+            PromptShield completed the configured
+            adversarial security test suite and
+            identified {stats.vulnerable} vulnerable
+            test case(s). The current security score
+            is {stats.security_score}/100 with a{" "}
+            {stats.risk_level.toLowerCase()} classification.
+          </p>
 
         </div>
 
 
-        {/* FOOTER */}
+{/* FOOTER */}
 
         <div className="report-footer">
-
-          <span>
-            PromptShield AI Security Platform
-          </span>
-
-          <span>
-            Generated {new Date().toLocaleString()}
-          </span>
-
+          <span>PromptShield AI Security Platform</span>
+          <span>Generated {new Date().toLocaleString()}</span>
         </div>
 
       </section>
