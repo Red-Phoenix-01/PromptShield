@@ -531,7 +531,7 @@ AI Security Testing & Prompt Injection Detection Platform
 
             <div>
               <strong>API ONLINE</strong>
-              <small>localhost:8000</small>
+              <small>{API_URL}</small>
             </div>
           </div>
 
