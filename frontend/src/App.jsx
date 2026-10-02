@@ -26,7 +26,7 @@ import {
 
 import "./App.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://Dev07.pythonanywhere.com";
+const API_URL = "https://Dev07.pythonanywhere.com";
 
 function App() {
   const [activePage, setActivePage] = useState("overview");
