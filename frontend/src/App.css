@@ -2430,3 +2430,125 @@ textarea:focus-visible {
     gap: 10px;
   }
 }
+
+.retest-panel {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  background: rgba(0, 212, 255, 0.04);
+  border-radius: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.retest-panel strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.retest-panel p {
+  margin: 0;
+  color: #7f91aa;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  background: rgba(0, 212, 255, 0.10);
+  color: #00d4ff;
+
+  padding: 9px 13px;
+  border-radius: 7px;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.18);
+}
+
+.primary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
+/* ============================================================
+   REPORT SEVERITY SUMMARY
+============================================================ */
+
+.report-severity {
+  margin-top: 22px;
+  padding-top: 0;
+  border-top: none;
+}
+
+.report-severity h3 {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.severity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 0 18px;
+}
+
+.severity-grid > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 58px;
+  padding: 14px 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 7px;
+
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.severity-grid span {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.severity-grid strong {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Slight severity distinction */
+
+.severity-grid > div:nth-child(1) strong {
+  color: #ff5c6c;
+}
+
+.severity-grid > div:nth-child(2) strong {
+  color: #ffb84d;
+}
+
+.severity-grid > div:nth-child(3) strong {
+  color: #4ade80;
+}

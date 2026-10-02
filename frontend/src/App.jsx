@@ -18,6 +18,7 @@ import {
   Search,
   Shield,
   ShieldAlert,
+  ShieldCheck,
   Terminal,
   X,
   Zap,
@@ -35,6 +36,9 @@ function App() {
     passed: 0,
     vulnerable: 0,
     failed: 0,
+    security_score: 0,
+    risk_level: "Not Assessed",
+
     severity: {
       high: 0,
       medium: 0,
@@ -57,6 +61,7 @@ const [testingPrompt, setTestingPrompt] = useState(false);
 
 const [liveResult, setLiveResult] = useState(null);
 const [testingLive, setTestingLive] = useState(false);
+const [retestingId, setRetestingId] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -123,6 +128,8 @@ const [testingLive, setTestingLive] = useState(false);
         passed: data.passed || 0,
         vulnerable: data.vulnerable || 0,
         failed: data.failed || 0,
+        security_score: data.security_score ?? 0,
+        risk_level: data.risk_level || "Not Assessed",
         severity: data.severity || {
           high: 0,
           medium: 0,
@@ -166,6 +173,57 @@ const [testingLive, setTestingLive] = useState(false);
       setScanning(false);
     }
   };
+
+  const retestFinding = async (finding) => {
+  if (!finding?.id) return;
+
+  setRetestingId(finding.id);
+  setError("");
+
+  try {
+    const response = await fetch(
+      `${API_URL}/api/retest/${finding.id}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Retest failed");
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(
+        data.error || "Retest failed"
+      );
+    }
+
+    const updatedFinding = data.result;
+
+    setResults((currentResults) =>
+      currentResults.map((result) =>
+        result.id === updatedFinding.id
+          ? updatedFinding
+          : result
+      )
+    );
+
+    setSelectedFinding(updatedFinding);
+
+  } catch (err) {
+    setError(
+      err.message ||
+      "Unable to complete security retest."
+    );
+  } finally {
+    setRetestingId(null);
+  }
+};
 
   // ------------------------------------------------------------
   // CUSTOM PROMPT TEST
@@ -340,26 +398,6 @@ AI Security Testing & Prompt Injection Detection Platform
     });
   }, [attacks, searchTerm]);
 
-  // ------------------------------------------------------------
-  // RISK SCORE
-  // ------------------------------------------------------------
-
-  const riskScore = useMemo(() => {
-    if (!stats.total_tests) return 0;
-
-    const highWeight = stats.severity.high * 40;
-    const mediumWeight = stats.severity.medium * 20;
-    const lowWeight = stats.severity.low * 10;
-
-    return Math.min(
-      100,
-      Math.round(
-        ((highWeight + mediumWeight + lowWeight) /
-          (stats.total_tests * 40)) *
-          100
-      )
-    );
-  }, [stats]);
 
   // ------------------------------------------------------------
   // NAVIGATION
@@ -583,7 +621,7 @@ AI Security Testing & Prompt Injection Detection Platform
             <OverviewPage
               stats={stats}
               results={results}
-              riskScore={riskScore}
+              securityScore={stats.security_score}
               runScan={runScan}
               scanning={scanning}
               setSelectedFinding={setSelectedFinding}
@@ -693,6 +731,8 @@ AI Security Testing & Prompt Injection Detection Platform
         <FindingModal
           finding={selectedFinding}
           close={() => setSelectedFinding(null)}
+          retestFinding={retestFinding}
+          retesting={retestingId === selectedFinding.id}
         />
       )}
 
@@ -708,7 +748,7 @@ AI Security Testing & Prompt Injection Detection Platform
 function OverviewPage({
   stats,
   results,
-  riskScore,
+  securityScore,
   runScan,
   scanning,
   setSelectedFinding,
@@ -770,8 +810,8 @@ function OverviewPage({
 
           <PanelTitle
             icon={<Gauge size={16} />}
-            title="PromptShield Risk Index"
-            subtitle="Project-defined risk indicator"
+            title="PromptShield Security Score"
+            subtitle="Assessment score based on detected vulnerabilities"
           />
 
           <div className="risk-content">
@@ -779,11 +819,11 @@ function OverviewPage({
             <div
               className="risk-ring"
               style={{
-                "--risk": `${riskScore * 3.6}deg`,
+                "--risk": `${securityScore * 3.6}deg`,
               }}
             >
               <div>
-                <strong>{riskScore}</strong>
+                <strong>{securityScore}</strong>
                 <span>/ 100</span>
               </div>
             </div>
@@ -791,21 +831,17 @@ function OverviewPage({
             <div className="risk-info">
 
               <div className="risk-status">
-                {riskScore === 0
-                  ? "NO RISK DETECTED"
-                  : riskScore < 30
-                  ? "LOW EXPOSURE"
-                  : riskScore < 60
-                  ? "MODERATE EXPOSURE"
-                  : "HIGH EXPOSURE"}
+                {stats.risk_level || "NOT ASSESSED"}
               </div>
 
               <p>
-                The PromptShield Risk Index summarizes
-                findings detected during the current scan.
+                The PromptShield Security Score summarizes
+                the security posture of the target based on
+                the current assessment.
               </p>
 
               <div className="risk-legend">
+
                 <span>
                   <i className="dot red"></i>
                   High
@@ -820,6 +856,7 @@ function OverviewPage({
                   <i className="dot green"></i>
                   Low
                 </span>
+
               </div>
 
             </div>
@@ -1217,7 +1254,7 @@ function AttackLabPage({
   return (
     <div>
 
-      <PageHeader
+      <PageHeader 
         eyebrow="ATTACK LAB"
         title="Custom Prompt Tester"
         description="Submit an adversarial prompt and evaluate whether it contains known prompt-injection indicators."
@@ -1737,6 +1774,8 @@ function ReportsPage({
 
       <section className="report-preview">
 
+        {/* HEADER */}
+
         <div className="report-header">
 
           <div>
@@ -1765,16 +1804,23 @@ function ReportsPage({
 
         </div>
 
+
+        {/* META */}
+
         <div className="report-meta">
 
           <div>
             <label>SCAN ID</label>
-            <strong>SCAN-DEMO-001</strong>
+            <strong>
+              SCAN-DEMO-001
+            </strong>
           </div>
 
           <div>
             <label>MODE</label>
-            <strong>DEMO</strong>
+            <strong>
+              DEMO
+            </strong>
           </div>
 
           <div>
@@ -1792,6 +1838,9 @@ function ReportsPage({
           </div>
 
         </div>
+
+
+        {/* SUMMARY */}
 
         <div className="report-summary">
 
@@ -1811,19 +1860,75 @@ function ReportsPage({
           />
 
           <ReportMetric
-            label="High Risk"
-            value={stats.severity.high}
+            label="Failed"
+            value={stats.failed}
+          />
+
+          <ReportMetric
+            label="Security Score"
+            value={`${stats.security_score}/100`}
+          />
+
+          <ReportMetric
+            label="Risk Level"
+            value={stats.risk_level}
           />
 
         </div>
 
+
+        {/* SEVERITY */}
+
+        <div className="report-severity">
+
+          <h3>
+            Severity Summary
+          </h3>
+
+          <div className="severity-grid">
+
+            <div>
+              <span>HIGH</span>
+              <strong>
+                {stats.severity.high}
+              </strong>
+            </div>
+
+            <div>
+              <span>MEDIUM</span>
+              <strong>
+                {stats.severity.medium}
+              </strong>
+            </div>
+
+            <div>
+              <span>LOW</span>
+              <strong>
+                {stats.severity.low}
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* FINDINGS */}
+
         <div className="report-findings">
 
-          <h3>Findings</h3>
+          <h3>
+            Findings
+          </h3>
 
           {results.length === 0 ? (
-            <p>No scan results available.</p>
+
+            <p>
+              No scan results available.
+            </p>
+
           ) : (
+
             results.map((result) => (
 
               <div
@@ -1851,10 +1956,61 @@ function ReportsPage({
                   {result.status}
                 </span>
 
+                <span
+                  className={severityClassLocal(
+                    result.severity
+                  )}
+                >
+                  {result.severity}
+                </span>
+
               </div>
 
             ))
+
           )}
+
+        </div>
+
+
+        {/* SECURITY ASSESSMENT */}
+
+        <div className="report-assessment">
+
+          <ShieldCheck size={20} />
+
+          <div>
+
+            <strong>
+              Security Assessment
+            </strong>
+
+            <p>
+              PromptShield completed the configured
+              adversarial security test suite and
+              identified {stats.vulnerable} vulnerable
+              test case(s). The current security score
+              is {stats.security_score}/100 with a
+              {` ${stats.risk_level.toLowerCase()}`}
+              classification.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* FOOTER */}
+
+        <div className="report-footer">
+
+          <span>
+            PromptShield AI Security Platform
+          </span>
+
+          <span>
+            Generated {new Date().toLocaleString()}
+          </span>
 
         </div>
 
@@ -1863,7 +2019,6 @@ function ReportsPage({
     </div>
   );
 }
-
 
 /* ============================================================
    HISTORY
@@ -1962,16 +2117,28 @@ function HistoryPage({ history }) {
    FINDING MODAL
 ============================================================ */
 
-function FindingModal({ finding, close }) {
-  return (
-    <div className="modal-overlay" onClick={close}>
+function FindingModal({
+  finding,
+  close,
+  retestFinding,
+  retesting,
+}) {
+  const isVulnerable =
+    finding.status === "VULNERABLE";
 
+  return (
+    <div
+      className="modal-overlay"
+      onClick={close}
+    >
       <div
         className="finding-modal"
         onClick={(event) =>
           event.stopPropagation()
         }
       >
+
+        {/* HEADER */}
 
         <div className="modal-header">
 
@@ -1996,9 +2163,16 @@ function FindingModal({ finding, close }) {
 
         </div>
 
+
+        {/* STATUS */}
+
         <div className="modal-status">
 
-          <span className={statusClassLocal(finding.status)}>
+          <span
+            className={statusClassLocal(
+              finding.status
+            )}
+          >
             {finding.status}
           </span>
 
@@ -2012,6 +2186,9 @@ function FindingModal({ finding, close }) {
 
         </div>
 
+
+        {/* ATTACK */}
+
         <div className="modal-section">
 
           <label>ATTACK PAYLOAD</label>
@@ -2021,6 +2198,9 @@ function FindingModal({ finding, close }) {
           </div>
 
         </div>
+
+
+        {/* TARGET RESPONSE */}
 
         <div className="modal-section">
 
@@ -2032,6 +2212,9 @@ function FindingModal({ finding, close }) {
           </div>
 
         </div>
+
+
+        {/* ANALYSIS + EVIDENCE */}
 
         <div className="modal-two-column">
 
@@ -2045,9 +2228,12 @@ function FindingModal({ finding, close }) {
 
           </div>
 
+
           <div className="modal-section">
 
-            <label>DETECTION EVIDENCE</label>
+            <label>
+              DETECTION EVIDENCE
+            </label>
 
             <div className="modal-evidence">
 
@@ -2067,6 +2253,31 @@ function FindingModal({ finding, close }) {
 
         </div>
 
+
+        {/* IMPACT */}
+
+        <div className="recommendation">
+
+          <ShieldAlert size={18} />
+
+          <div>
+
+            <strong>
+              Security Impact
+            </strong>
+
+            <p>
+              {finding.impact ||
+                "No security impact identified."}
+            </p>
+
+          </div>
+
+        </div>
+
+
+        {/* REMEDIATION */}
+
         <div className="recommendation">
 
           <Shield size={18} />
@@ -2074,23 +2285,94 @@ function FindingModal({ finding, close }) {
           <div>
 
             <strong>
-              Security Recommendation
+              Recommended Remediation
             </strong>
 
             <p>
-              Strengthen instruction hierarchy,
-              restrict disclosure of system-level
-              instructions, and evaluate model
-              behavior against additional adversarial
-              test cases.
+              {finding.remediation ||
+                "No remediation guidance available."}
             </p>
 
           </div>
 
         </div>
 
-      </div>
 
+        {/* SECURITY CONTROLS */}
+
+        <div className="modal-section">
+
+          <label>
+            RECOMMENDED SECURITY CONTROLS
+          </label>
+
+          <div className="modal-evidence">
+
+            {finding.security_controls?.length > 0
+              ? finding.security_controls.map(
+                  (control) => (
+                    <code key={control}>
+                      {control}
+                    </code>
+                  )
+                )
+              : "No additional controls specified."}
+
+          </div>
+
+        </div>
+
+
+        {/* RETEST */}
+
+        {isVulnerable && (
+
+          <div className="retest-panel">
+
+            <div>
+
+              <strong>
+                Security Retest
+              </strong>
+
+              <p>
+                Re-run this attack to verify
+                whether the vulnerability is
+                still present.
+              </p>
+
+            </div>
+
+            <button
+              className="primary-button"
+              onClick={() =>
+                retestFinding(finding)
+              }
+              disabled={retesting}
+            >
+
+              {retesting ? (
+                <>
+                  <RefreshCw
+                    size={14}
+                    className="spin"
+                  />
+                  Retesting...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={14} />
+                  Retest Finding
+                </>
+              )}
+
+            </button>
+
+          </div>
+
+        )}
+
+      </div>
     </div>
   );
 }
