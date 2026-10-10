@@ -203,13 +203,6 @@ Configure the frontend API URL and backend CORS settings appropriately when runn
 - Persistent database storage and scan comparisons.
 - CI/CD integration and automated regression testing.
 
-## 👨‍💻 Project Information
-
-**Institution:** Sathyabama Institute of Science and Technology, Chennai  
-**Department:** Computer Science and Engineering  
-**Course:** Professional Training I (PT1)  
-**Project:** PromptShield — AI Security Testing and Prompt Injection Detection Platform
-
 ## 🖥️ Application Preview
 
 ### Security Dashboard
