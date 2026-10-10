@@ -210,6 +210,16 @@ Configure the frontend API URL and backend CORS settings appropriately when runn
 **Course:** Professional Training I (PT1)  
 **Project:** PromptShield — AI Security Testing and Prompt Injection Detection Platform
 
+## 🖥️ Application Preview
+
+### Security Dashboard
+
+PromptShield provides a centralized dashboard for reviewing LLM security test metrics, risk assessments, attack categories, and findings.
+
+![PromptShield Security Dashboard](overview.png)
+
+**Live Demo:** https://prompt-shield-gamma.vercel.app/
+
 ---
 
 *Developed as an individual academic software project.*
